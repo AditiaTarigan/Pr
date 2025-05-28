@@ -14,7 +14,6 @@ use App\Http\Controllers\DashboardController; // Controller utama pengarah dashb
 use App\Http\Controllers\Admin\ProdiController;
 use App\Http\Controllers\Admin\JenisDokumenController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
-use App\Http\Controllers\Admin\LogActivityController as AdminLogActivityController;
 use App\Http\Controllers\Admin\DosenController as AdminDosenController;
 use App\Http\Controllers\Admin\MahasiswaController as AdminMahasiswaController;
 
@@ -68,7 +67,6 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('users', AdminUserController::class); // CRUD User umum (admin, dosen, mhs jika dikelola di sini)
         Route::resource('dosen', AdminDosenController::class); // CRUD khusus Dosen (jika berbeda dari users)
         Route::resource('mahasiswa', AdminMahasiswaController::class); // CRUD khusus Mahasiswa (jika berbeda dari users)
-        Route::resource('log-activities', AdminLogActivityController::class)->only(['index', 'show']);
         Route::middleware(['mahasiswa'])->prefix('mahasiswa')->name('mahasiswa.')->group(function () {
         Route::resource('dokumen', MahasiswaDokumenController::class); // Untuk mahasiswa submit dokumen
     });
@@ -100,7 +98,8 @@ Route::middleware(['auth'])->group(function () {
 
         Route::resource('request-judul', MahasiswaRequestJudulController::class);
         Route::resource('request-bimbingan', MahasiswaRequestBimbinganController::class);
-        Route::resource('dokumen', MahasiswaDokumenController::class); // Untuk mahasiswa submit dokumen
+        Route::resource('dokumen', MahasiswaDokumenController::class)->parameters([
+        'dokumen' => 'dokumenProyekAkhir']);
         Route::resource('history-bimbingan', MahasiswaHistoryBimbinganController::class)->only(['index', 'show']);
     });
 

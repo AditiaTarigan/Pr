@@ -129,7 +129,7 @@ class DokumenController extends Controller
                              ->with('error', 'Anda tidak memiliki izin untuk mengakses dokumen ini.');
         }
 
-        $dokumenProyekAkhir->load(['jenisDokumen', 'reviewer.user', 'mahasiswa.user']);
+        $dokumenProyekAkhir->load(['jenisDokumen', 'reviewer', 'mahasiswa']);
         return view('mahasiswa.dokumen.show', compact('dokumenProyekAkhir'));
     }
 

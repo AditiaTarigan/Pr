@@ -3,7 +3,7 @@
 @section('title', 'Detail Dokumen Proyek Akhir')
 
 @section('content')
-<div class="container py-4">
+<div class="container py-4 mt-5">
     <div class="row justify-content-center">
         <div class="col-md-9">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -41,8 +41,8 @@
                                     </a>
                                 </dd>
 
-                                <dt class="col-sm-5">Nama File Tersimpan</dt>
-                                <dd class="col-sm-7">{{ $dokumenProyekAkhir->nama_file_unik }}</dd>
+                                {{--<dt class="col-sm-5">Nama File Tersimpan</dt>
+                                <dd class="col-sm-7">{{ $dokumenProyekAkhir->nama_file_unik }}</dd>--}}
 
                                 <dt class="col-sm-5">Ekstensi</dt>
                                 <dd class="col-sm-7">{{ strtoupper($dokumenProyekAkhir->ekstensi_file) }}</dd>
