@@ -166,6 +166,42 @@
                                     </form>
                                 </div>
                             </li>
+                            @auth
+                                @php
+                                    $unreadNotifications = Auth::user()->unreadNotifications()->limit(10)->get();
+                                @endphp
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link position-relative" href="#" id="notifDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-bell"></i>
+                                        @if(Auth::user()->unreadNotifications->count() > 0)
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                                {{ Auth::user()->unreadNotifications->count() }}
+                                            </span>
+                                        @endif
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notifDropdown" style="min-width: 350px; max-width: 400px;">
+                                        <li class="dropdown-header">Notifikasi</li>
+                                        @forelse($unreadNotifications as $notif)
+                                            <li>
+                                                <a href="#" class="dropdown-item small">
+                                                    <strong>{{ $notif->data['title'] ?? '-' }}</strong><br>
+                                                    <span>{{ $notif->data['message'] ?? '-' }}</span>
+                                                    <div class="text-muted small">{{ $notif->created_at->diffForHumans() }}</div>
+                                                </a>
+                                            </li>
+                                        @empty
+                                            <li><span class="dropdown-item text-muted">Tidak ada notifikasi baru</span></li>
+                                        @endforelse
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="POST" action="{{ route('notifications.markAllRead') }}">
+                                                @csrf
+                                                <button type="submit" class="dropdown-item text-center small">Tandai semua sudah dibaca</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </li>
+                            @endauth
                         @endguest
                     </ul>
                 </div>

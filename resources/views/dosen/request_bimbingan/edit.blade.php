@@ -64,7 +64,8 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="jam_dosen" class="form-label">Jam Pengganti</label>
-                                <input type="time" class="form-control @error('jam_dosen') is-invalid @enderror" id="jam_dosen" name="jam_dosen" value="{{ old('jam_dosen', $requestBimbingan->jam_dosen) }}">
+                                <input type="time" class="form-control @error('jam_dosen') is-invalid @enderror" id="jam_dosen" name="jam_dosen" value="{{ old('jam_dosen', $requestBimbingan->jam_dosen)}}" required min="08:00" max="17:00">
+                                <small class="form-text text-muted">Bimbingan dapat dilakukan pada jam akademik (08:00 - 17:00.)</small>
                                 @error('jam_dosen')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -111,26 +112,33 @@
                 rescheduleFields.style.display = 'none';
                 tanggalDosenInput.required = false;
                 jamDosenInput.required = false;
-                // Kosongkan nilai jika tidak reschedule untuk menghindari validasi yang tidak perlu
-                // tanggalDosenInput.value = '';
-                // jamDosenInput.value = '';
             }
         }
 
         if(statusSelect) {
             statusSelect.addEventListener('change', toggleRescheduleFields);
-            // Panggil sekali saat load untuk menangani old input atau data dari database
             toggleRescheduleFields();
         }
 
         var today = new Date().toISOString().split('T')[0];
         if (tanggalDosenInput) {
-             var oldDate = tanggalDosenInput.value;
+            var oldDate = tanggalDosenInput.value;
             if (oldDate && oldDate < today) {
                 // biarkan untuk edit data lama
             } else {
-                 tanggalDosenInput.setAttribute('min', today);
+                tanggalDosenInput.setAttribute('min', today);
             }
+        }
+
+        // Batasi jam_dosen hanya antara 08:00 dan 17:00
+        if (jamDosenInput) {
+            jamDosenInput.addEventListener('input', function() {
+                var value = jamDosenInput.value;
+                if (value) {
+                    if (value < '08:00') jamDosenInput.value = '08:00';
+                    if (value > '17:00') jamDosenInput.value = '17:00';
+                }
+            });
         }
     });
 </script>

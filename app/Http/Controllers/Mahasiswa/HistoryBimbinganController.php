@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Mahasiswa;
 use App\Http\Controllers\Controller;
 use App\Models\HistoryBimbingan;
 use App\Models\Mahasiswa; // Untuk mendapatkan data mahasiswa
+use App\Notifications\HistoryBimbinganNotification;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class HistoryBimbinganController extends Controller
 {
@@ -164,6 +167,10 @@ class HistoryBimbinganController extends Controller
             }
 
             // TODO: Notifikasi ke Dosen jika ada pembatalan atau update signifikan dari mahasiswa
+            $dosenUser = $historyBimbingan->dosen->user;
+            if ($dosenUser) {
+                $dosenUser->notify(new HistoryBimbinganNotification($historyBimbingan, 'to_dosen'));
+            }
 
             DB::commit();
             return redirect()->route('mahasiswa.history-bimbingan.show', $historyBimbingan->id)

@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon; // Untuk validasi tanggal
 use Illuminate\Validation\ValidationException; // Untuk menangani error validasi secara eksplisit jika perlu
+use App\Notifications\RequestBimbinganNotification;
 
 class RequestBimbinganController extends Controller
 {
@@ -94,16 +95,28 @@ class RequestBimbinganController extends Controller
         ]);
 
         try {
-            RequestBimbingan::create([
+            $requestBimbingan = RequestBimbingan::create([
                 'mahasiswa_id' => $mahasiswa->id,
                 'dosen_id' => $mahasiswa->dosen_pembimbing_id,
                 'tanggal_usulan' => $validatedData['tanggal_usulan'],
                 'jam_usulan' => $validatedData['jam_usulan'],
                 'topik_bimbingan' => $validatedData['topik_bimbingan'],
-                'lokasi_usulan' => $validatedData['lokasi_usulan'] ?? null, // Gunakan null jika tidak ada input
-                'catatan_mahasiswa' => $validatedData['catatan_mahasiswa'] ?? null, // Sesuaikan dengan nama field di Model dan DB
-                'status_request' => 'pending', // Status default untuk pengajuan baru
+                'lokasi_usulan' => $validatedData['lokasi_usulan'] ?? null,
+                'catatan_mahasiswa' => $validatedData['catatan_mahasiswa'] ?? null,
+                'status_request' => 'pending',
             ]);
+
+            // Kirim notifikasi ke dosen pembimbing
+            $dosenUser = $mahasiswa->dosenPembimbing->user;
+            if ($dosenUser) {
+                $dosenUser->notify(new RequestBimbinganNotification($requestBimbingan, 'to_dosen'));
+            } else {
+                Log::error('Gagal mengirim notifikasi: User dosen pembimbing tidak ditemukan.', [
+                    'mahasiswa_id' => $mahasiswa->id,
+                    'dosen_pembimbing_id' => $mahasiswa->dosen_pembimbing_id,
+                    'request_bimbingan_id' => $requestBimbingan->id
+                ]);
+            }
 
             return redirect()->route('mahasiswa.request-bimbingan.index')
                              ->with('success', 'Pengajuan bimbingan berhasil dikirim.');
@@ -179,8 +192,18 @@ class RequestBimbinganController extends Controller
         ]);
 
         try {
-            // Hanya update field yang divalidasi, status_request tidak diubah di sini
             $requestBimbingan->update($validatedData);
+            // Notifikasi ke dosen jika perlu (misal: update data penting)
+            $dosenUser = $mahasiswa->dosenPembimbing->user;
+            if ($dosenUser) {
+                $dosenUser->notify(new RequestBimbinganNotification($requestBimbingan, 'to_dosen'));
+            } else {
+                Log::error('Gagal mengirim notifikasi (update): User dosen pembimbing tidak ditemukan.', [
+                    'mahasiswa_id' => $mahasiswa->id,
+                    'dosen_pembimbing_id' => $mahasiswa->dosen_pembimbing_id,
+                    'request_bimbingan_id' => $requestBimbingan->id
+                ]);
+            }
             return redirect()->route('mahasiswa.request-bimbingan.show', $requestBimbingan->id)
                              ->with('success', 'Pengajuan bimbingan berhasil diperbarui.');
         } catch (ValidationException $e) {

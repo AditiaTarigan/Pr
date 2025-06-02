@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dosen;
 use App\Http\Controllers\Controller;
 use App\Models\HistoryBimbingan;
 use App\Models\Dosen; // Untuk otorisasi dan data dosen
+use App\Notifications\HistoryBimbinganNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -131,7 +132,10 @@ class HistoryBimbinganController extends Controller
             $historyBimbingan->update($updateData);
 
             // TODO: Kirim Notifikasi ke Mahasiswa
-            // $historyBimbingan->mahasiswa->user->notify(new BimbinganUpdatedByDosen($historyBimbingan));
+            $mahasiswaUser = $historyBimbingan->mahasiswa->user;
+            if ($mahasiswaUser) {
+                $mahasiswaUser->notify(new HistoryBimbinganNotification($historyBimbingan, 'to_mahasiswa'));
+            }
 
             DB::commit();
             return redirect()->route('dosen.history-bimbingan.show', $historyBimbingan->id)

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Dosen;
 use App\Models\RequestJudul; // Pastikan model RequestJudul ada
 use App\Models\Mahasiswa;   // Jika perlu akses langsung ke model Mahasiswa
+use App\Notifications\RequestJudulNotification;
 
 class RequestJudulController extends Controller
 {
@@ -102,7 +103,10 @@ class RequestJudulController extends Controller
         $requestJudul->save();
 
         // TODO: Implementasi Notifikasi ke Dosen
-        // Contoh: $dosenDipilih->user->notify(new PengajuanJudulBaruNotification($requestJudul));
+        $dosenUser = $dosenDipilih->user;
+        if ($dosenUser) {
+            $dosenUser->notify(new RequestJudulNotification($requestJudul, 'to_dosen'));
+        }
 
         // TODO: Implementasi Log Aktivitas
         // activity()->performedOn($requestJudul)->causedBy($user)->log('Mengajukan judul baru');

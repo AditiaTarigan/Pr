@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
 
 // --- Controller Autentikasi Kustom ---
 use App\Http\Controllers\Auth\CustomLoginController;
@@ -102,5 +103,12 @@ Route::middleware(['auth'])->group(function () {
         'dokumen' => 'dokumenProyekAkhir']);
         Route::resource('history-bimbingan', MahasiswaHistoryBimbinganController::class)->only(['index', 'show']);
     });
+
+    Route::post('/notifications/mark-all-read', function(Request $request) {
+        if (auth()->check()) {
+            auth()->user()->unreadNotifications->markAsRead();
+        }
+        return back();
+    })->name('notifications.markAllRead')->middleware('auth');
 
 });

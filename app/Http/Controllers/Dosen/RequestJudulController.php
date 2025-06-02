@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dosen;
 
 use App\Http\Controllers\Controller;
 use App\Models\RequestJudul;
+use App\Notifications\RequestJudulNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -132,7 +133,11 @@ class RequestJudulController extends Controller
 
             $requestJudul->save();
 
-            // TODO: Notifikasi ke Mahasiswa mengenai status pengajuannya
+            // Notifikasi ke Mahasiswa mengenai status pengajuannya
+            $mahasiswaUser = $requestJudul->mahasiswa->user;
+            if ($mahasiswaUser) {
+                $mahasiswaUser->notify(new RequestJudulNotification($requestJudul, 'to_mahasiswa'));
+            }
 
             return redirect()->route('dosen.request-judul.index')
                              ->with('success', 'Status pengajuan judul berhasil diperbarui.');

@@ -25,7 +25,7 @@
                     <table class="table table-hover align-middle">
                         <thead class="table-light">
                             <tr>
-                                <th>#</th>
+                                <th>No.</th>
                                 <th>Mahasiswa (NIM)</th>
                                 <th>Jenis Dokumen</th>
                                 <th>File</th>
@@ -38,7 +38,7 @@
                         <tbody>
                             @foreach($dokumensPending as $index => $dokumen)
                                 <tr>
-                                    <td>{{ $dokumensPending->firstItem() + $index }}</td>
+                                    <td>{{ $dokumensPending->firstItem() + $index }}.</td>
                                     <td>
                                         {{ $dokumen->mahasiswa->user->name ?? 'N/A' }}<br>
                                         <small class="text-muted">{{ $dokumen->mahasiswa->nim ?? 'N/A' }}</small>

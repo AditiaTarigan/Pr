@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Notifications\RequestBimbinganNotification;
 
 class RequestBimbinganController extends Controller
 {
@@ -110,6 +111,12 @@ class RequestBimbinganController extends Controller
                 $requestBimbingan->jam_dosen = $requestBimbingan->jam_usulan;
             }
             $requestBimbingan->save();
+
+            // Notifikasi ke mahasiswa
+            $mahasiswaUser = $requestBimbingan->mahasiswa->user;
+            if ($mahasiswaUser) {
+                $mahasiswaUser->notify(new RequestBimbinganNotification($requestBimbingan, 'to_mahasiswa'));
+            }
 
             if ($validated['status_request'] === 'approved') {
                 if ($requestBimbingan->tanggal_dosen && $requestBimbingan->jam_dosen) {
