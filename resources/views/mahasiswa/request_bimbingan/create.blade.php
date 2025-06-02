@@ -37,7 +37,8 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="jam_usulan" class="form-label">Jam Usulan <span class="text-danger">*</span></label>
-                                <input type="time" class="form-control @error('jam_usulan') is-invalid @enderror" id="jam_usulan" name="jam_usulan" value="{{ old('jam_usulan') }}" required>
+                                <input type="time" class="form-control @error('jam_usulan') is-invalid @enderror" id="jam_usulan" name="jam_usulan" value="{{ old('jam_usulan') }}" required min="08:00" max="17:00">
+                                <small class="form-text text-muted">Bimbingan dapat dilakukan pada jam akademik (08:00 - 17:00.)</small>
                                 @error('jam_usulan')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -92,6 +93,18 @@
         var dateInput = document.getElementById('tanggal_usulan');
         if (dateInput) {
             dateInput.setAttribute('min', today);
+        }
+
+        // Batasi jam_usulan hanya antara 08:00 dan 17:00
+        var timeInput = document.getElementById('jam_usulan');
+        if (timeInput) {
+            timeInput.addEventListener('input', function() {
+                var value = timeInput.value;
+                if (value) {
+                    if (value < '08:00') timeInput.value = '08:00';
+                    if (value > '17:00') timeInput.value = '17:00';
+                }
+            });
         }
     });
 </script>
