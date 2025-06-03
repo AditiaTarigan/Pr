@@ -41,7 +41,7 @@
                 </div>
                 <div class="col-md-12 mb-3">
                     <strong class="d-block">Deskripsi Singkat/Latar Belakang:</strong>
-                    <p>{{ $requestJudul->deskripsi_judul ?: 'Tidak ada deskripsi tambahan.' }}</p>
+                    <dd class="col-sm-9">{!! nl2br(e($requestJudul->deskripsi)) !!}</dd>
                 </div>
 
                 @if($requestJudul->file_pendukung)

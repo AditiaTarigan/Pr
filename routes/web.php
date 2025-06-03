@@ -105,10 +105,10 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::post('/notifications/mark-all-read', function(Request $request) {
-        if (auth()->check()) {
-            auth()->user()->unreadNotifications->markAsRead();
-        }
-        return back();
-    })->name('notifications.markAllRead')->middleware('auth');
+    if (Auth::check()) {
+        Auth::user()->unreadNotifications->markAsRead();
+    }
+    return back();
+})->name('notifications.markAllRead')->middleware('auth');
 
 });
