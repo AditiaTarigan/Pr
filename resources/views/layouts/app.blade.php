@@ -72,6 +72,14 @@
             font-weight: bold;
             color: #fff !important; /* Pastikan warna teks brand kontras dengan background navbar */
         }
+        /* Membatasi isi notifikasi agar tidak overflow */
+        .notif-message-truncate {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+            max-width: 300px; /* Atur sesuai kebutuhan */
+        }
     </style>
 
 </head>
@@ -183,9 +191,16 @@
                                         <li class="dropdown-header">Notifikasi</li>
                                         @forelse($unreadNotifications as $notif)
                                             <li>
-                                                <a href="#" class="dropdown-item small">
+                                                <a href="{{
+                                                    // Routing dinamis berdasarkan tipe notifikasi dan role
+                                                    isset($notif->data['request_bimbingan_id']) ? (Auth::user()->role === 'dosen' ? route('dosen.request-bimbingan.show', $notif->data['request_bimbingan_id']) : route('mahasiswa.request-bimbingan.show', $notif->data['request_bimbingan_id'])) :
+                                                    (isset($notif->data['request_judul_id']) ? (Auth::user()->role === 'dosen' ? route('dosen.request-judul.show', $notif->data['request_judul_id']) : route('mahasiswa.request-judul.show', $notif->data['request_judul_id'])) :
+                                                    (isset($notif->data['history_bimbingan_id']) ? (Auth::user()->role === 'dosen' ? route('dosen.history-bimbingan.show', $notif->data['history_bimbingan_id']) : route('mahasiswa.history-bimbingan.show', $notif->data['history_bimbingan_id'])) : '#'))
+                                                }}"
+                                                   class="dropdown-item small notif-link"
+                                                   data-id="{{ $notif->id }}">
                                                     <strong>{{ $notif->data['title'] ?? '-' }}</strong><br>
-                                                    <span>{{ $notif->data['message'] ?? '-' }}</span>
+                                                    <span class="notif-message-truncate">{{ $notif->data['message'] ?? '-' }}</span>
                                                     <div class="text-muted small">{{ $notif->created_at->diffForHumans() }}</div>
                                                 </a>
                                             </li>
@@ -300,5 +315,24 @@
     {{-- <script src="{{ asset('js/app.js') }}" defer></script> --}}
 
     @stack('scripts') {{-- Untuk JS spesifik halaman --}}
+    @push('scripts')
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.notif-link').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                const notifId = this.getAttribute('data-id');
+                fetch('/notifications/mark-read/' + notifId, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                    },
+                });
+                // Notifikasi akan hilang setelah reload, atau bisa dihapus dari DOM secara langsung jika ingin instant
+            });
+        });
+    });
+    </script>
+    @endpush
 </body>
 </html>

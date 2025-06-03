@@ -3,7 +3,7 @@
 @section('title', 'Proses Pengajuan Judul: ' . Str::limit($requestJudul->judul_diajukan, 30))
 
 @section('content')
-<div class="container py-4">
+<div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-lg-9">
             <div class="d-flex justify-content-between align-items-center mb-3">
