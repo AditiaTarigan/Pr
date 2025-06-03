@@ -64,8 +64,7 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="jam_dosen" class="form-label">Jam Pengganti</label>
-                                <input type="time" class="form-control @error('jam_dosen') is-invalid @enderror" id="jam_dosen" name="jam_dosen" value="{{ old('jam_dosen', $requestBimbingan->jam_dosen)}}" required min="08:00" max="17:00">
-                                <small class="form-text text-muted">Bimbingan dapat dilakukan pada jam akademik (08:00 - 17:00.)</small>
+                                <input type="time" class="form-control @error('jam_dosen') is-invalid @enderror" id="jam_dosen" name="jam_dosen" value="{{ old('jam_dosen', $requestBimbingan->jam_dosen)}}">
                                 @error('jam_dosen')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -120,25 +119,35 @@
             toggleRescheduleFields();
         }
 
-        var today = new Date().toISOString().split('T')[0];
+        var now = new Date();
+        // Konversi ke WIB (UTC+7)
+        var utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        var wib = new Date(utc + (3600000*7));
+        var todayWIB = wib.toISOString().split('T')[0];
+        var jamWIB = wib.toTimeString().slice(0,5); // format HH:MM
+
         if (tanggalDosenInput) {
             var oldDate = tanggalDosenInput.value;
-            if (oldDate && oldDate < today) {
+            if (oldDate && oldDate < todayWIB) {
                 // biarkan untuk edit data lama
             } else {
-                tanggalDosenInput.setAttribute('min', today);
+                tanggalDosenInput.setAttribute('min', todayWIB);
             }
-        }
 
-        // Batasi jam_dosen hanya antara 08:00 dan 17:00
-        if (jamDosenInput) {
-            jamDosenInput.addEventListener('input', function() {
-                var value = jamDosenInput.value;
-                if (value) {
-                    if (value < '08:00') jamDosenInput.value = '08:00';
-                    if (value > '17:00') jamDosenInput.value = '17:00';
+            // Atur min pada jamDosenInput jika tanggal sama dengan hari ini (WIB)
+            tanggalDosenInput.addEventListener('change', function() {
+                if (tanggalDosenInput.value === todayWIB) {
+                    jamDosenInput.min = jamWIB;
+                } else {
+                    jamDosenInput.min = '';
                 }
             });
+            // Trigger min jam saat load jika tanggal sudah terisi
+            if (tanggalDosenInput.value === todayWIB) {
+                jamDosenInput.min = jamWIB;
+            } else {
+                jamDosenInput.min = '';
+            }
         }
     });
 </script>

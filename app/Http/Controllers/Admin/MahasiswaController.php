@@ -36,6 +36,7 @@ class MahasiswaController extends Controller
     {
         $prodis = Prodi::orderBy('nama_prodi')->get();
         return view('admin.mahasiswa.create', compact('prodis'));
+
     }
 
     /**
@@ -85,14 +86,13 @@ class MahasiswaController extends Controller
             Log::info('[AdminMahasiswaController@store] Data Mahasiswa setelah disimpan dan direlasi:', $savedMahasiswa ? $savedMahasiswa->toArray() : ['error' => 'Mahasiswa tidak ditemukan setelah save']);
 
             DB::commit();
-
-            activity()
-               ->causedBy(auth()->user())
-               ->performedOn($user) // Subjek utama bisa user atau mahasiswa
-               ->withProperties(['mahasiswa_id' => $mahasiswa->id, 'user_id' => $user->id, 'nim' => $mahasiswa->nim])
-               ->log("Admin menambahkan mahasiswa baru: {$user->name}");
-
             return redirect()->route('admin.mahasiswa.index')->with('success', 'Mahasiswa baru berhasil ditambahkan.');
+            //activity()
+            //   ->causedBy(auth()->user())
+             //  ->performedOn($user) // Subjek utama bisa user atau mahasiswa
+              // ->withProperties(['mahasiswa_id' => $mahasiswa->id, 'user_id' => $user->id, 'nim' => $mahasiswa->nim])
+              // ->log("Admin menambahkan mahasiswa baru: {$user->name}");
+
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();

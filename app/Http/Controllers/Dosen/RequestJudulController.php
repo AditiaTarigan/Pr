@@ -102,49 +102,28 @@ class RequestJudulController extends Controller
                               ->with('warning', 'Pengajuan judul ini tidak dapat diproses karena statusnya bukan \'pending\'.');
         }
 
-        $validated = $request->validate([
-            'status' => 'required|in:approved,rejected',
-            'catatan_dosen' => 'nullable|string|max:1000',
+        // Jika dosen ingin approve, langsung boleh walaupun ada lebih dari satu request judul milik mahasiswa
+        // Tidak perlu cek sisa request judul lain
+        $validatedData = $request->validate([
+            'status' => 'required|in:approved,rejected,revisi_mahasiswa',
+            'catatan_dosen' => 'nullable|string',
         ]);
 
-        try {
-            $requestJudul->status = $validated['status'];
-            $requestJudul->catatan_dosen = $validated['catatan_dosen'];
-            // Jika status 'approved', mungkin ada logika tambahan:
-            // - Mengupdate judul_proyek_akhir dan dosen_pembimbing_id di tabel mahasiswa
-            // - Mengirim notifikasi ke mahasiswa
-            if ($validated['status'] === 'approved') {
-                $mahasiswa = $requestJudul->mahasiswa;
-                if ($mahasiswa) {
-                    $mahasiswa->judul_proyek_akhir = $requestJudul->judul_diajukan;
-                    $mahasiswa->dosen_pembimbing_id = $requestJudul->dosen_tujuan_id; // Menyimpan ID Dosen, bukan User ID Dosen
-                    // Atau jika Anda menyimpan user_id dosen di tabel mahasiswa:
-                    // $mahasiswa->dosen_pembimbing_id = $userDosen->id;
-                    $mahasiswa->status_proyek_akhir = 'bimbingan'; // Atau status lain yang sesuai
-                    $mahasiswa->save();
+        $requestJudul->status = $validatedData['status'];
+        $requestJudul->catatan_dosen = $validatedData['catatan_dosen'] ?? null;
+        $requestJudul->save();
 
-                    // Nonaktifkan request judul lain yang pending dari mahasiswa ini
-                    RequestJudul::where('mahasiswa_id', $mahasiswa->id)
-                                ->where('id', '!=', $requestJudul->id)
-                                ->where('status', 'pending')
-                                ->update(['status' => 'cancelled_by_system']); // Atau status lain
-                }
-            }
+        // Jika status approved, tidak perlu reject request judul lain
+        // ...existing code...
 
-            $requestJudul->save();
-
-            // Notifikasi ke Mahasiswa mengenai status pengajuannya
-            $mahasiswaUser = $requestJudul->mahasiswa->user;
-            if ($mahasiswaUser) {
-                $mahasiswaUser->notify(new RequestJudulNotification($requestJudul, 'to_mahasiswa'));
-            }
-
-            return redirect()->route('dosen.request-judul.index')
-                             ->with('success', 'Status pengajuan judul berhasil diperbarui.');
-
-        } catch (\Exception $e) {
-            Log::error('Error update RequestJudul ID '.$requestJudul->id.' oleh Dosen User ID '.Auth::id().': ' . $e->getMessage());
-            return redirect()->back()->withInput()->with('error', 'Gagal memperbarui status pengajuan.');
+        // Notifikasi ke Mahasiswa mengenai status pengajuannya
+        $mahasiswaUser = $requestJudul->mahasiswa->user;
+        if ($mahasiswaUser) {
+            $mahasiswaUser->notify(new RequestJudulNotification($requestJudul, 'to_mahasiswa'));
         }
+
+        return redirect()->route('dosen.request-judul.index')
+                         ->with('success', 'Status pengajuan judul berhasil diperbarui.');
+
     }
 }

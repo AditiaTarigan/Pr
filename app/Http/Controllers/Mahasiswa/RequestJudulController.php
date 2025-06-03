@@ -84,15 +84,15 @@ class RequestJudulController extends Controller
                              ->with('error', 'Dosen yang Anda pilih tidak valid untuk program studi Anda.');
         }
 
-        // Cek apakah mahasiswa sudah punya request judul yang statusnya 'pending' atau 'approved'
-        $existingRequest = RequestJudul::where('mahasiswa_id', $mahasiswa->id)
-                                        ->whereIn('status', ['pending', 'approved'])
-                                        ->first();
-        if ($existingRequest) {
-            return redirect()->back()
-                             ->withInput()
-                             ->with('error', 'Anda sudah memiliki pengajuan judul yang sedang diproses atau sudah disetujui.');
-        }
+        // Hapus pengecekan existingRequest agar mahasiswa bisa request lebih dari satu judul
+        // $existingRequest = RequestJudul::where('mahasiswa_id', $mahasiswa->id)
+        //                                 ->whereIn('status', ['pending', 'approved'])
+        //                                 ->first();
+        // if ($existingRequest) {
+        //     return redirect()->back()
+        //                      ->withInput()
+        //                      ->with('error', 'Anda sudah memiliki pengajuan judul yang sedang diproses atau sudah disetujui.');
+        // }
 
         $requestJudul = new RequestJudul();
         $requestJudul->mahasiswa_id = $mahasiswa->id;
