@@ -36,7 +36,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="deskripsi" class="form-label">Deskripsi Singkat Judul <span class="text-danger">*</span></label>
+                            <label for="deskripsi" class="form-label">Latar Belakang & Tujuan Pemilihan Judul<span class="text-danger">*</span></label>
                             <textarea class="form-control @error('deskripsi') is-invalid @enderror" id="deskripsi" name="deskripsi" rows="5" required minlength="20">{{ old('deskripsi') }}</textarea>
                             @error('deskripsi')
                                 <div class="invalid-feedback">

@@ -94,7 +94,7 @@
                                 @enderror
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="nomor_kelompok" class="form-label">Nomor Kelompok (Jika Ada)</label>
+                                <label for="nomor_kelompok" class="form-label">Nomor Kelompok</label>
                                 <input type="text" class="form-control @error('nomor_kelompok') is-invalid @enderror" id="nomor_kelompok" name="nomor_kelompok" value="{{ old('nomor_kelompok') }}">
                                 @error('nomor_kelompok')
                                     <div class="invalid-feedback">{{ $message }}</div>

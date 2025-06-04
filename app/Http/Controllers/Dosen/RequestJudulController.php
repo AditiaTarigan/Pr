@@ -102,8 +102,6 @@ class RequestJudulController extends Controller
                               ->with('warning', 'Pengajuan judul ini tidak dapat diproses karena statusnya bukan \'pending\'.');
         }
 
-        // Jika dosen ingin approve, langsung boleh walaupun ada lebih dari satu request judul milik mahasiswa
-        // Tidak perlu cek sisa request judul lain
         $validatedData = $request->validate([
             'status' => 'required|in:approved,rejected,revisi_mahasiswa',
             'catatan_dosen' => 'nullable|string',
@@ -113,8 +111,16 @@ class RequestJudulController extends Controller
         $requestJudul->catatan_dosen = $validatedData['catatan_dosen'] ?? null;
         $requestJudul->save();
 
-        // Jika status approved, tidak perlu reject request judul lain
-        // ...existing code...
+        // Tambahan: Jika status approved, update data mahasiswa
+        if ($validatedData['status'] === 'approved') {
+            $mahasiswa = $requestJudul->mahasiswa;
+            if ($mahasiswa) {
+                $mahasiswa->status_proyek_akhir = 'bimbingan'; // atau 'bimbingan' sesuai kebutuhan
+                $mahasiswa->judul_proyek_akhir = $requestJudul->judul_diajukan;
+                $mahasiswa->dosen_pembimbing_id = $requestJudul->dosen_tujuan_id;
+                $mahasiswa->save();
+            }
+        }
 
         // Notifikasi ke Mahasiswa mengenai status pengajuannya
         $mahasiswaUser = $requestJudul->mahasiswa->user;
