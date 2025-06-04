@@ -1,38 +1,54 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}"> {{-- Menggunakan helper Laravel untuk lang --}}
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="icon" type="image/png" href="{{ asset('foto/del.png') }}"> {{-- type="image/png" lebih tepat --}}
-    <title>Login - SIPA {{-- Atau {{ config('app.name', 'SIPA') }} --}}</title>
+    <link rel="icon" type="image/png" href="{{ asset('foto/del.png') }}">
+    <title>Login - SIPA</title>
     <link rel="stylesheet" href="{{ asset('css/login.css') }}">
-    {{-- Tambahkan link untuk Bootstrap Icons jika Anda menggunakannya --}}
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    {{-- Bootstrap Icons sudah di-import via login.css --}}
     <style>
-        /* Tambahan CSS untuk error message jika tidak ada di login.css */
+        /* --- INI BAGIAN YANG DIPERBARUI (dari kode Anda, dipertahankan) --- */
         .field .error-message {
-            color: red;
+            color: #D8000C;
             font-size: 0.875rem;
-            margin-top: 0.25rem;
-            display: block; /* agar muncul di baris baru */
+            margin-top: 0.3rem;
+            display: block;
+            text-align: left;
+            padding-left: 2px;
+            width: 100%;
         }
+
+        .alert.alert-danger {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid #f5c6cb;
+            border-radius: 0.25rem;
+            background-color: #f8d7da;
+            color: #721c24;
+            box-sizing: border-box;
+            text-align: left;
+        }
+
         .alert.alert-danger ul {
             list-style-type: none;
             padding: 0;
             margin: 0;
-            color: red;
         }
-        .alert.alert-danger {
-            padding: 0.5rem;
-            margin-bottom: 1rem;
-            border: 1px solid red;
-            border-radius: 0.25rem;
-            background-color: #f8d7da;
+
+        .alert.alert-danger li {
+            margin-bottom: 0.25rem;
         }
-        .logo-besar {
-            width: 200px; /* Ganti ukuran sesuai keinginan */
-            height: auto; /* Menjaga rasio aspek */
+        .alert.alert-danger li:last-child {
+            margin-bottom: 0;
+        }
+        /* --- AKHIR BAGIAN YANG DIPERBARUI --- */
+
+        .logo-besar { /* Gaya ini dari kode Anda, dipertahankan */
+            width: 200px;
+            height: auto;
         }
     </style>
 </head>
@@ -52,46 +68,52 @@
                 </div>
             @endif
 
-            <form action="{{ route('login') }}" method="POST">
-                @csrf
-                <div class="field">
-                    {{-- ASUMSI: Anda login menggunakan email. Jika username, ganti type="email" ke "text" dan name="email" ke "username" --}}
-                    <input class="inp" type="email" value="{{ old('email') }}" name="email" id="email" required autocomplete="email" autofocus>
-                    <label class="label" for="email">Alamat Email</label> {{-- Sesuaikan label --}}
-                    <span class="bi bi-person"></span> {{-- Atau bi-envelope jika email --}}
-                    @error('email')
-                        <span class="error-message">{{ $message }}</span>
-                    @enderror
-                </div>
+           <form action="{{ route('login') }}" method="POST">
+    @csrf
+    <div class="field">
+        <div class="input-area">
+            <input class="inp" type="email" value="{{ old('email') }}" name="email" id="email" required autocomplete="email" autofocus>
+            <label class="label" for="email">Alamat Email</label>
+            <span class="bi bi-person"></span> {{-- Ikon untuk email --}}
+        </div>
+        @error('email')
+            <span class="error-message">{{ $message }}</span>
+        @enderror
+    </div>
 
-                <div class="field">
-                    <input class="inp" type="password" name="password" id="password" required autocomplete="current-password">
-                    <label class="label" for="password">Password</label>
-                    <span class="toggle-pass bi bi-eye"></span>
-                    @error('password')
-                        <span class="error-message">{{ $message }}</span>
-                    @enderror
-                </div>
+    <div class="field">
+        <div class="input-area">
+            <input class="inp" type="password" name="password" id="password" required autocomplete="current-password">
+            <label class="label" for="password">Password</label>
+            <span class="toggle-pass bi bi-eye-slash"></span> {{-- Ikon untuk password --}}
+        </div>
+        @error('password')
+            <span class="error-message">{{ $message }}</span>
+        @enderror
+    </div>
 
-                <div class="action">
-                    <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-                    <label for="remember">Ingat Saya</label> {{-- Sesuaikan teks --}}
-                </div>
+    <div class="action">
+        <input type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+        <label for="remember">Ingat Saya</label>
+    </div>
 
-                <input type="submit" value="Login" id="login-btn">
-            </form>
+    <input type="submit" value="Login" id="login-btn">
+</form>
         </div>
         <div class="bg"></div>
    </div>
 
 <script>
-    const passwordInput = document.querySelector('#password'); // Lebih spesifik menargetkan input password
-    const togglePasswordIcon = document.querySelector('.toggle-pass');
+    const passwordInput = document.querySelector('#password');
+    const togglePasswordIcon = document.querySelector('.toggle-pass'); // Menargetkan elemen dengan kelas .toggle-pass
 
-    if (togglePasswordIcon && passwordInput) { // Pastikan elemen ada
+    if (togglePasswordIcon && passwordInput) {
         togglePasswordIcon.addEventListener('click', () => {
+            // Toggle kelas ikon
             togglePasswordIcon.classList.toggle('bi-eye-slash');
             togglePasswordIcon.classList.toggle('bi-eye');
+
+            // Toggle tipe input password
             passwordInput.type = (passwordInput.type === 'password') ? 'text' : 'password';
         });
     }

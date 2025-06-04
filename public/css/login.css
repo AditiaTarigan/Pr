@@ -10,10 +10,8 @@
 }
 
 img { /* Gaya umum untuk gambar, mungkin ini adalah logo Anda */
-    width: 150px;
+    width: 150px; /* Jika .logo-besar tidak digunakan, ini berlaku. Jika .logo-besar digunakan, ia akan menimpa ini. */
     height: 150px;
-    /* Pastikan tidak ada margin yang mengganggu (mis. margin-left: 0;) */
-    /* Jika ini logo di dalam form, centering akan diurus oleh .form-wrapper */
 }
 
 h1 {
@@ -34,7 +32,7 @@ a:hover {
     min-height: 500px;
     z-index: 1;
     color: white;
-    text-align: center; /* Untuk teks di dalam elemen anak */
+    text-align: center;
     border-radius: 10px;
     font-family: 'Calibri', sans-serif;
     padding: 20px 20px 5px;
@@ -43,41 +41,60 @@ a:hover {
     box-shadow: 0px 0px 20px 0px #00000070;
     display: flex;
     flex-direction: column;
-    align-items: center; /* <<< INI PERUBAHAN KUNCI untuk menengahkan item anak */
+    align-items: center;
 }
 
 .form-title {
     font-size: 30px;
-    margin-top: 10px; /* Tambahkan sedikit margin jika perlu antara logo dan judul */
+    margin-top: 10px;
 }
 
 .field {
-    position: relative;
+    position: relative; /* Tetap diperlukan untuk @error jika diposisikan absolut, tapi tidak krusial jika @error standar */
     margin-top: 45px;
-    width: 100%; /* Pastikan field mengambil lebar penuh dari container yang sudah di-center */
+    width: 100%;
 }
 
-.field .bi {
+.field .bi { /* Ini menata semua ikon bootstrap di dalam .field */
     position: absolute;
     right: 5px;
     bottom: 5px;
     color: #e3e3e3;
 }
 
-.toggle-pass {
+.toggle-pass { /* Hanya untuk kursor pada ikon mata */
     cursor: pointer;
 }
 
-form { /* Tambahkan ini jika form adalah pembungkus input */
-    width: 100%; /* Pastikan form mengambil lebar penuh */
+form {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Menengahkan konten form jika diperlukan */
+    align-items: center;
 }
 
-form input {
+form input { /* Gaya umum untuk input di dalam form */
     background-color: transparent;
     border: none;
+}
+
+/* Sembunyikan ikon "lihat password" bawaan browser untuk mencegah duplikasi */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none !important; /* Important untuk memastikan override */
+    width: 0;
+    height: 0;
+}
+
+input[type="password"]::-webkit-reveal, /* Untuk Chrome/Edge Chromium/Opera */
+input[type="password"]::-webkit-clear-button { /* Tombol clear, jaga-jaga */
+    display: none !important;
+    -webkit-appearance: none !important;
+}
+
+.input-area {
+    position: relative; /* Penting agar ikon absolut mengacu pada ini */
+    width: 100%;
 }
 
 .inp {
@@ -86,14 +103,14 @@ form input {
     font-size: 16px;
     caret-color: white;
     outline: none;
-    padding: 0 25px 5px 0;
+    padding: 0 25px 5px 0; /* Padding kanan untuk memberi ruang ikon */
     border-bottom: 1px solid #ffffff54;
     box-sizing: border-box;
 }
 
-.icon {
+/* .icon { HAPUS KARENA TIDAK DIGUNAKAN (ikon ditata oleh .field .bi)
     color: white;
-}
+} */
 
 .label {
     position: absolute;
@@ -106,31 +123,33 @@ form input {
 
 .inp:focus~label,
 .inp:valid~label {
-    transform: translateY(-25px);
+    transform: translateY(-45px); /* Nilai sebelumnya -45px, sesuaikan jika ini lebih baik */
     font-size: 15px;
     color: white;
 }
 
 .action {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; /* Ini akan menempatkan checkbox di kiri dan (jika ada) link di kanan */
+    align-items: center; /* Menyelaraskan item secara vertikal */
     font-size: 15px;
     color: #dddddd;
     user-select: none;
     margin-top: 10px;
-    width: 100%; /* Pastikan action mengambil lebar penuh */
+    width: 100%;
     box-sizing: border-box;
 }
 
-.action label {
+.action label { /* Gaya untuk label "Ingat Saya" */
     display: flex;
     gap: 5px;
     cursor: pointer;
+    align-items: center; /* Menyelaraskan checkbox dan teks label */
 }
 
-#save-info {
+/* #save-info { HAPUS KARENA ID INI TIDAK ADA DI HTML (HTML menggunakan id="remember")
     cursor: pointer;
-}
+} */
 
 #login-btn {
     cursor: pointer;
@@ -151,7 +170,7 @@ form input {
     align-items: center;
     gap: 10px;
     margin-top: 30px;
-    width: 100%; /* Pastikan separator mengambil lebar penuh */
+    width: 100%;
 }
 
 .separator::before,
@@ -167,7 +186,7 @@ form input {
     gap: 12px;
     justify-content: center;
     margin-top: 15px;
-    width: 100%; /* Pastikan alternative mengambil lebar penuh */
+    width: 100%;
 }
 
 .alternative button {
@@ -190,7 +209,7 @@ form input {
     margin-top: 35px;
     font-size: 15px;
     padding-bottom: 15px;
-    width: 100%; /* Pastikan bottom mengambil lebar penuh */
+    width: 100%;
 }
 
 .bg {
@@ -201,7 +220,7 @@ form input {
     height: 100%;
     z-index: 0;
     opacity: 0.8;
-    background-image: url('/foto/RiyanthiSianturi_ITDEL_11.jpg');
+    background-image: url('/foto/RiyanthiSianturi_ITDEL_11.jpg'); /* Pastikan path ini benar */
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
@@ -217,7 +236,7 @@ form input {
     img { /* Gaya untuk logo di mobile */
         width: 100px;
         height: 100px;
-        margin-bottom: 15px; /* Jarak bawah logo */
+        margin-bottom: 15px;
     }
 
     h1 {
@@ -232,7 +251,6 @@ form input {
         padding: 20px 15px;
         margin-top: 20px;
         margin-bottom: 20px;
-        /* align-items: center; sudah diatur di rule utama .form-wrapper */
     }
 
     .form-title {
@@ -250,15 +268,16 @@ form input {
     .inp:focus~label,
     .inp:valid~label {
         font-size: 14px;
+        /* transform: translateY(-25px); Anda mungkin ingin menyesuaikan ini juga untuk mobile jika -45px terlalu banyak */
     }
 
     .action {
         font-size: 14px;
-        flex-direction: column;
+        flex-direction: column; /* Checkbox dan link "Lupa Password?" akan bertumpuk */
         gap: 10px;
-        align-items: flex-start;
+        align-items: flex-start; /* Rata kiri untuk mobile */
     }
-    .action a {
+    .action a { /* Jika Anda memiliki link "Lupa Password?" di dalam .action */
         padding: 5px 0;
     }
 
