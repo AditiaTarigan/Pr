@@ -117,10 +117,10 @@
                             @elseif(Auth::user()->role === 'dosen')
                                 {{-- Tambahkan navigasi spesifik dosen di navbar jika perlu --}}
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('dosen.request-judul*') ? 'active' : '' }}" href="{{ route('dosen.request-judul.index') }}">Request Judul</a>
+                                    <a class="nav-link {{ request()->routeIs('dosen.request-judul*') ? 'active' : '' }}" href="{{ route('dosen.request-judul.index') }}">Daftar Request Judul</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link {{ request()->routeIs('dosen.request-bimbingan*') ? 'active' : '' }}" href="{{ route('dosen.request-bimbingan.index') }}">Request Bimbingan</a>
+                                    <a class="nav-link {{ request()->routeIs('dosen.request-bimbingan*') ? 'active' : '' }}" href="{{ route('dosen.request-bimbingan.index') }}">Daftar Request Bimbingan</a>
                                 </li>
                             @elseif(Auth::user()->role === 'mahasiswa')
                                 {{-- Tambahkan navigasi spesifik mahasiswa di navbar jika perlu --}}
