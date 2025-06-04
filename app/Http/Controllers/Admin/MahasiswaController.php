@@ -51,7 +51,7 @@ class MahasiswaController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'nim' => 'required|string|max:20|unique:mahasiswa,nim',
             'prodi_id' => 'required|exists:prodi,id',
-            'angkatan' => 'required|digits:4|integer|min:1900|max:'.(date('Y')+5),
+            'angkatan' => 'required|digits:4|integer|min:' . (date('Y') - 3) . '|max:' . (date('Y') - 1),
             'nomor_kelompok' => 'nullable|string|max:50',
         ]);
 
