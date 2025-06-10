@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+// PERBAIKAN: Memastikan semua 'use' statement benar dan lengkap
+use Illuminate\Http\Request; // Class Request yang benar dari Illuminate
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use App\Models\User;
-use App\Models\Prodi; // Asumsi ada model Prodi
+use App\Models\Prodi;
 use App\Models\Dosen;
 use App\Models\Mahasiswa;
-use App\Models\DokumenProyekAkhir; // Asumsi ada model DokumenProyekAkhir
+use App\Models\DokumenProyekAkhir;
 use App\Models\RequestBimbingan;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
+// 'use Illuminate\Support\Str;' dihapus karena tidak digunakan
 
 class DashboardController extends Controller
 {
@@ -22,6 +23,7 @@ class DashboardController extends Controller
      */
     private function getCalendarData(Request $request): array
     {
+        // Tidak ada perubahan logika di sini, hanya memastikan type-hint $request benar
         $requestedMonth = (int) $request->input('cal_month', Carbon::now()->month);
         $requestedYear = (int) $request->input('cal_year', Carbon::now()->year);
         try {
@@ -65,36 +67,25 @@ class DashboardController extends Controller
      */
     private function getDosenDashboardData(User $user, Carbon $currentMonthDateObject): array
     {
+        // Tidak ada perubahan di sini
         $data = ['events' => []];
         $dosen = $user->dosen;
 
         if ($dosen) {
             $mahasiswaBimbinganIds = Mahasiswa::where('dosen_pembimbing_id', $dosen->id)->pluck('id');
 
-            // Data Dokumen Pending Review
             $data['dokumenPendingReview'] = $mahasiswaBimbinganIds->isNotEmpty() ?
                 DokumenProyekAkhir::whereIn('mahasiswa_id', $mahasiswaBimbinganIds)
                     ->whereIn('status_review', ['pending', 'revision_needed'])
-                    // Saat mengakses di blade: $dokumen->mahasiswa->user->name DAN $dokumen->mahasiswa->nim
                     ->with(['mahasiswa.user:id,name', 'mahasiswa:id,nim', 'jenisDokumen:id,nama_jenis'])
                     ->latest('updated_at')->take(5)->get() : collect();
 
-            // Data Mahasiswa Bimbingan Aktif
             $data['mahasiswa_bimbingan'] = Mahasiswa::where('dosen_pembimbing_id', $dosen->id)
                 ->whereIn('status_proyek_akhir', ['bimbingan', 'pengajuan_judul', 'revisi'])
-                // KOREKSI DI SINI: Hanya ambil 'id' dan 'name' dari 'user'
-                // Kolom 'nim' dan 'status_proyek_akhir' akan diakses dari objek $mhs (Mahasiswa) itu sendiri
                 ->with(['user:id,name'])
                 ->orderBy('created_at', 'desc')
                 ->get();
-            // Cara akses di Blade Dosen:
-            // foreach ($mahasiswa_bimbingan as $mhs)
-            //   $mhs->user->name
-            //   $mhs->nim  <-- dari objek Mahasiswa
-            //   $mhs->status_proyek_akhir <-- dari objek Mahasiswa
-            // endforeach
 
-            // Kalender Events (Kode ini sudah benar dari sebelumnya)
             $requestBimbingans = RequestBimbingan::where('dosen_id', $dosen->id)
                 ->whereIn('status_request', ['approved', 'rescheduled'])
                 ->where(function ($query) use ($currentMonthDateObject) {
@@ -119,7 +110,8 @@ class DashboardController extends Controller
                 $events[$dateKey][] = [
                     'request_id' => $bimbingan->id, 'title' => $bimbingan->topik_bimbingan ?: 'Bimbingan',
                     'status' => $bimbingan->status_request, 'jam' => $formattedJam,
-                    'lokasi_usulan' => $bimbingan->lokasi_usulan, 'catatan_dosen' => $isRescheduled ? $bimbingan->catatan_dosen : null,
+                    'lokasi' => $bimbingan->lokasi_bimbingan ?? $bimbingan->lokasi_usulan,
+                    'catatan_dosen' => $isRescheduled ? $bimbingan->catatan_dosen : null,
                 ];
             }
             $data['events'] = $events;
@@ -135,7 +127,7 @@ class DashboardController extends Controller
      */
     private function getMahasiswaDashboardData(User $user, Carbon $currentMonthDateObject): array
     {
-        // Kode ini sudah benar dari sebelumnya
+        // Logika di sini sudah benar dari revisi sebelumnya
         $data = ['events' => []];
         $mahasiswa = $user->mahasiswa()->with(['prodi:id,nama_prodi', 'dosenPembimbing.user:id,name'])->first();
 
@@ -143,7 +135,9 @@ class DashboardController extends Controller
             $data['mahasiswa'] = $mahasiswa;
             $data['status_proyek_akhir'] = $mahasiswa->status_proyek_akhir ?? 'N/A';
 
-            $requestBimbingans = RequestBimbingan::where('mahasiswa_id', $mahasiswa->id)
+            $anggotaKelompokIds = $mahasiswa->semuaAnggotaKelompok()->pluck('id');
+
+            $requestBimbingans = RequestBimbingan::whereIn('mahasiswa_id', $anggotaKelompokIds)
                 ->whereIn('status_request', ['approved', 'rescheduled'])
                 ->where(function ($query) use ($currentMonthDateObject) {
                     $query->where(function ($subQuery) use ($currentMonthDateObject) {
@@ -161,13 +155,16 @@ class DashboardController extends Controller
                 } elseif ($bimbingan->status_request == 'rescheduled' && $bimbingan->tanggal_dosen) {
                     $effectiveDate = $bimbingan->tanggal_dosen; $effectiveJam = $bimbingan->jam_dosen ?? $bimbingan->jam_usulan;
                 } else { continue; }
+
+                $effectiveLokasi = $bimbingan->lokasi_bimbingan ?? $bimbingan->lokasi_usulan;
                 $dateKey = $effectiveDate instanceof Carbon ? $effectiveDate->toDateString() : Carbon::parse($effectiveDate)->toDateString();
+
                 if (!isset($events[$dateKey])) { $events[$dateKey] = []; }
                 $formattedJam = null; if ($effectiveJam) { try { $formattedJam = Carbon::parse($effectiveJam)->format('H:i'); } catch (\Exception $e) { $formattedJam = null; }}
                 $events[$dateKey][] = [
                     'request_id' => $bimbingan->id, 'title' => $bimbingan->topik_bimbingan ?: 'Bimbingan',
                     'status' => $bimbingan->status_request, 'jam' => $formattedJam,
-                    'lokasi' => $bimbingan->lokasi_usulan,
+                    'lokasi' => $effectiveLokasi,
                     'dosen_nama' => $bimbingan->dosen->user->name ?? 'N/A',
                 ];
             }
@@ -184,7 +181,7 @@ class DashboardController extends Controller
      */
     public function index(Request $request)
     {
-        // Kode ini sudah benar dari sebelumnya
+        // Tidak ada perubahan logika di sini, hanya memastikan type-hint $request benar
         $user = Auth::user(); $viewData = [];
         if (!$user) { return redirect()->route('login')->withErrors('Sesi tidak valid.'); }
 

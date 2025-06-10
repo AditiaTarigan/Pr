@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Dosen;
 
 use App\Http\Controllers\Controller;
 use App\Models\RequestBimbingan;
-use App\Models\Mahasiswa;
-use App\Models\Dosen;
 use App\Models\HistoryBimbingan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,38 +14,30 @@ use App\Notifications\RequestBimbinganNotification;
 
 class RequestBimbinganController extends Controller
 {
-    // ... (method getAuthenticatedDosen, index, show, edit tetap sama seperti versi final sebelumnya) ...
-
     private function getAuthenticatedDosen()
     {
         $user = Auth::user();
-        if (!$user || !$user->dosen) {
-            return null;
-        }
-        return $user->dosen;
+        return $user ? $user->dosen : null;
     }
 
     public function index(Request $request)
     {
         $dosen = $this->getAuthenticatedDosen();
         if (!$dosen) {
-            Log::warning('Dosen\RequestBimbinganController@index: Data profil dosen tidak ditemukan untuk User ID: ' . Auth::id());
             return redirect()->route('dashboard')->with('error', 'Data profil dosen Anda tidak ditemukan.');
         }
 
-        try {
-            $query = RequestBimbingan::where('dosen_id', $dosen->id);
-            $filterStatus = $request->input('status', 'pending');
-            if (!empty($filterStatus) && in_array($filterStatus, ['pending', 'approved', 'rejected', 'rescheduled', 'completed', 'cancelled'])) {
-                $query->where('status_request', $filterStatus);
-            }
-            $requests = $query->with(['mahasiswa.user:id,name', 'mahasiswa.prodi:id,nama_prodi'])
-                             ->orderBy('created_at', 'desc')
-                             ->paginate(10);
-        } catch (\Throwable $e) {
-            Log::error("Dosen\RequestBimbinganController@index (Dosen ID: ".$dosen->id."): Error saat mengambil RequestBimbingan - " . $e->getMessage());
-            return redirect()->route('dashboard')->with('error', 'Gagal memuat daftar request bimbingan. Silakan coba lagi.');
+        $query = RequestBimbingan::where('dosen_id', $dosen->id);
+        $filterStatus = $request->input('status', 'pending');
+
+        if (!empty($filterStatus) && in_array($filterStatus, ['pending', 'approved', 'rejected', 'rescheduled'])) {
+            $query->where('status_request', $filterStatus);
         }
+
+        $requests = $query->with(['mahasiswa.user:id,name', 'mahasiswa.prodi:id,nama_prodi'])
+                         ->orderBy('created_at', 'desc')
+                         ->paginate(10);
+
         return view('dosen.request_bimbingan.index', compact('requests', 'filterStatus'));
     }
 
@@ -55,9 +45,9 @@ class RequestBimbinganController extends Controller
     {
         $dosen = $this->getAuthenticatedDosen();
         if (!$dosen || $requestBimbingan->dosen_id !== $dosen->id) {
-            abort(403, 'Anda tidak berhak mengakses detail request ini.');
+            abort(403, 'Akses ditolak.');
         }
-        $requestBimbingan->load(['mahasiswa.user:id,name,email', 'mahasiswa.prodi:id,nama_prodi', 'dosen.user:id,name']);
+        $requestBimbingan->load(['mahasiswa.user:id,name,email', 'mahasiswa.prodi:id,nama_prodi']);
         return view('dosen.request_bimbingan.show', compact('requestBimbingan'));
     }
 
@@ -65,20 +55,16 @@ class RequestBimbinganController extends Controller
     {
         $dosen = $this->getAuthenticatedDosen();
         if (!$dosen || $requestBimbingan->dosen_id !== $dosen->id) {
-            abort(403, 'Anda tidak berhak memproses request ini.');
+            abort(403, 'Akses ditolak.');
         }
         if ($requestBimbingan->status_request !== 'pending') {
              return redirect()->route('dosen.request-bimbingan.show', $requestBimbingan->id)
-                              ->with('warning', 'Request bimbingan ini tidak dapat diproses karena statusnya bukan "pending".');
+                              ->with('warning', 'Request bimbingan ini sudah diproses.');
         }
-        $requestBimbingan->load(['mahasiswa.user:id,name', 'mahasiswa.prodi:id,nama_prodi']);
+        $requestBimbingan->load(['mahasiswa.user:id,name']);
         return view('dosen.request_bimbingan.edit', compact('requestBimbingan'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     * Dosen memperbarui status request bimbingan dan membuat history jika disetujui.
-     */
     public function update(Request $request, RequestBimbingan $requestBimbingan)
     {
         $dosen = $this->getAuthenticatedDosen();
@@ -112,86 +98,59 @@ class RequestBimbinganController extends Controller
             }
             $requestBimbingan->save();
 
-            // Notifikasi ke mahasiswa
-            $mahasiswaUser = $requestBimbingan->mahasiswa->user;
-            if ($mahasiswaUser) {
-                $mahasiswaUser->notify(new RequestBimbinganNotification($requestBimbingan, 'to_mahasiswa'));
+            $mahasiswaPembuat = $requestBimbingan->mahasiswa;
+            if (!$mahasiswaPembuat) {
+                throw new \Exception("Data mahasiswa pembuat request tidak ditemukan.");
             }
 
+            $semuaAnggotaKelompok = $mahasiswaPembuat->semuaAnggotaKelompok();
+
             if ($validated['status_request'] === 'approved') {
-                if ($requestBimbingan->tanggal_dosen && $requestBimbingan->jam_dosen) {
-                    $tanggalBimbinganFinal = null;
-                    $stringUntukDiParse = '';
+                if (!$requestBimbingan->tanggal_dosen || !$requestBimbingan->jam_dosen) {
+                    throw new \Exception("Tanggal atau Jam bimbingan final tidak dapat ditentukan.");
+                }
 
-                    try {
-                        $tanggalBagianDariTanggalDosen = '';
-                        if ($requestBimbingan->tanggal_dosen instanceof \Carbon\Carbon) {
-                            $tanggalBagianDariTanggalDosen = $requestBimbingan->tanggal_dosen->format('Y-m-d');
-                        } else {
-                            $tanggalBagianDariTanggalDosen = Carbon::parse((string) $requestBimbingan->tanggal_dosen)->format('Y-m-d');
-                        }
-                        $jamBagian = (string) $requestBimbingan->jam_dosen;
-                        $stringUntukDiParse = $tanggalBagianDariTanggalDosen . ' ' . $jamBagian;
-                        Log::debug("Dosen\RequestBimbinganController@update: String yang akan diparse Carbon untuk history: " . $stringUntukDiParse);
-                        $tanggalBimbinganFinal = Carbon::parse($stringUntukDiParse)->format('Y-m-d H:i:s');
-                    } catch (\Exception $e) {
-                        $originalTanggal = $requestBimbingan->getRawOriginal('tanggal_dosen') ?? $requestBimbingan->tanggal_dosen;
-                        $originalJam = $requestBimbingan->getRawOriginal('jam_dosen') ?? $requestBimbingan->jam_dosen;
-                        Log::error("Dosen\RequestBimbinganController@update (Request ID: {$requestBimbingan->id}): Error parsing tanggal/jam untuk history - " . $e->getMessage(), [
-                            'original_tanggal_dosen' => $originalTanggal, 'original_jam_dosen' => $originalJam,
-                            'string_coba_diparse' => $stringUntukDiParse, 'trace' => $e->getTraceAsString()
-                        ]);
-                        DB::rollBack();
-                        return redirect()->back()->withInput()->with('error', 'Format tanggal atau jam bimbingan tidak valid untuk pembuatan histori. Silakan periksa input atau hubungi administrator.');
-                    }
+                $tanggalBimbinganFinal = Carbon::parse($requestBimbingan->tanggal_dosen->format('Y-m-d') . ' ' . $requestBimbingan->jam_dosen)->format('Y-m-d H:i:s');
 
-                    $pertemuanKe = HistoryBimbingan::where('mahasiswa_id', $requestBimbingan->mahasiswa_id)
-                                                ->where('dosen_id', $requestBimbingan->dosen_id)
-                                                ->count() + 1;
+                $anggotaIds = $semuaAnggotaKelompok->pluck('id');
+                $jumlahAnggota = $anggotaIds->count();
+                if ($jumlahAnggota === 0) { throw new \Exception("Tidak ada anggota kelompok yang ditemukan."); }
 
-                    HistoryBimbingan::create([
-                        'mahasiswa_id' => $requestBimbingan->mahasiswa_id,
-                        'dosen_id' => $requestBimbingan->dosen_id,
+                $pertemuanKe = (HistoryBimbingan::whereIn('mahasiswa_id', $anggotaIds)->where('dosen_id', $dosen->id)->count() / $jumlahAnggota) + 1;
+
+                $historyRecords = [];
+                $now = now();
+                foreach ($semuaAnggotaKelompok as $anggota) {
+                    $historyRecords[] = [
+                        'mahasiswa_id' => $anggota->id,
+                        'dosen_id' => $dosen->id,
                         'request_bimbingan_id' => $requestBimbingan->id,
                         'tanggal_bimbingan' => $tanggalBimbinganFinal,
                         'topik' => $requestBimbingan->topik_bimbingan,
-                        'catatan_mahasiswa' => null,
-                        'catatan_dosen' => null,
-                        'pertemuan_ke' => $pertemuanKe,
-                        'status_kehadiran' => 'hadir', // DISESUAIKAN DENGAN DATABASE YANG ADA
-                    ]);
-                    Log::info("Dosen\RequestBimbinganController@update: History bimbingan berhasil dibuat untuk Request ID: {$requestBimbingan->id}, Pertemuan ke: {$pertemuanKe}, Status Kehadiran Awal: hadir");
-                } else {
-                    Log::warning("Dosen\RequestBimbinganController@update (Request ID: {$requestBimbingan->id}): Tanggal atau jam bimbingan tidak lengkap. History tidak dibuat.");
+                        'pertemuan_ke' => (int) $pertemuanKe,
+                        // --- PERBAIKAN DI SINI ---
+                        // Menggunakan nilai yang valid sesuai ENUM di database
+                        'status_kehadiran' => 'hadir',
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                HistoryBimbingan::insert($historyRecords);
+            }
+
+            foreach ($semuaAnggotaKelompok as $anggota) {
+                if ($anggota->user) {
+                    $anggota->user->notify(new RequestBimbinganNotification($requestBimbingan, 'to_mahasiswa'));
                 }
             }
 
             DB::commit();
             return redirect()->route('dosen.request-bimbingan.index')
                              ->with('success', 'Status request bimbingan berhasil diperbarui.');
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            DB::rollBack();
-            Log::warning("Dosen\RequestBimbinganController@update (Request ID: {$requestBimbingan->id}): Validasi gagal - " . $e->getMessage(), $e->errors());
-            return redirect()->back()->withErrors($e->validator)->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Dosen\RequestBimbinganController@update (Request ID: {$requestBimbingan->id}): Error umum - " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan saat memperbarui status request bimbingan: ' . $e->getMessage());
+            Log::error("Error saat Dosen (ID: {$dosen->id}) memproses Request Bimbingan (ID: {$requestBimbingan->id}): " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan pada sistem. Silakan coba lagi.');
         }
-    }
-
-    public function destroy(RequestBimbingan $requestBimbingan)
-    {
-        abort(405, 'Method Not Allowed');
-    }
-
-    public function create()
-    {
-        abort(405, 'Method Not Allowed');
-    }
-
-    public function store(Request $request)
-    {
-        abort(405, 'Method Not Allowed');
     }
 }

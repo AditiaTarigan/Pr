@@ -37,16 +37,22 @@
             <div class="col-md-6">
                 <div class="card shadow-sm h-100">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Status Proyek Akhir Anda</h5>
+                        <h5 class="mb-0"><i class="fas fa-clipboard-check me-2"></i>Status Proyek Akhir Kelompok</h5>
                     </div>
                     <div class="card-body">
-                        {{-- Pastikan $mahasiswa dikirim dari DashboardController --}}
-                        @if($mahasiswa && $mahasiswa->judul_proyek_akhir)
-                            <h6 class="card-title">Judul: {{ $mahasiswa->judul_proyek_akhir }}</h6>
+                        @php
+                            // Logika untuk menemukan data representatif kelompok.
+                            // Kita cari mahasiswa pertama dalam kelompok yang sudah punya dosen pembimbing/judul.
+                            // Jika tidak ada, gunakan data mahasiswa yang sedang login sebagai default.
+                            $kelompokData = $mahasiswa->temanSeKelompok->firstWhere('dosen_pembimbing_id') ?? $mahasiswa;
+                        @endphp
+
+                        @if($kelompokData && $kelompokData->judul_proyek_akhir)
+                            <h6 class="card-title">Judul: {{ $kelompokData->judul_proyek_akhir }}</h6>
                             <p class="card-text">
                                 Status Saat Ini:
                                 <span class="badge
-                                    @switch($mahasiswa->status_proyek_akhir)
+                                    @switch($kelompokData->status_proyek_akhir)
                                         @case('belum_ada') bg-secondary @break
                                         @case('pengajuan_judul') bg-info text-dark @break
                                         @case('bimbingan') bg-primary @break
@@ -55,13 +61,14 @@
                                         @default bg-light text-dark @break
                                     @endswitch
                                 ">
-                                    {{ ucwords(str_replace('_', ' ', $mahasiswa->status_proyek_akhir)) }}
+                                    {{ ucwords(str_replace('_', ' ', $kelompokData->status_proyek_akhir)) }}
                                 </span>
                             </p>
-                            <p>Dosen Pembimbing: {{ $mahasiswa->dosenPembimbing->user->name ?? 'Belum ditentukan' }}</p>
+                            {{-- Tampilkan nama dosbing dari data representatif --}}
+                            <p>Dosen Pembimbing: {{ $kelompokData->dosenPembimbing->user->name ?? 'Belum ditentukan' }}</p>
                         @else
-                            <p class="text-muted">Anda belum mengajukan judul proyek akhir atau status belum tersedia.</p>
-                            <a href="{{ route('mahasiswa.request-judul.create') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle me-1"></i> Ajukan Judul Sekarang</a>
+                            <p class="text-muted">Kelompok Anda belum memiliki judul proyek akhir atau dosen pembimbing.</p>
+                            <a href="{{ route('mahasiswa.request-judul.index') }}" class="btn btn-primary btn-sm"><i class="fas fa-plus-circle me-1"></i> Ajukan Judul Sekarang</a>
                         @endif
                     </div>
                 </div>

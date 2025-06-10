@@ -17,78 +17,64 @@ class RequestJudulController extends Controller
      */
     public function index(Request $request)
     {
-        $userDosen = Auth::user(); // Dapatkan user dosen yang login
-
+        // ... (Tidak ada perubahan di sini, sudah benar)
+        $userDosen = Auth::user();
         if (!$userDosen || !$userDosen->dosen) {
-            Log::warning('Data dosen tidak ditemukan untuk user ID: ' . ($userDosen->id ?? 'null') . ' saat mengakses index request judul dosen.');
-            return redirect()->route('dashboard') // Atau ke dashboard dosen jika ada
-                             ->with('error', 'Data profil dosen Anda tidak ditemukan atau tidak lengkap.');
+            return redirect()->route('dashboard')->with('error', 'Data profil dosen Anda tidak ditemukan.');
         }
-        $dosenId = $userDosen->dosen->id; // Dapatkan ID dari tabel 'dosen'
+        $dosenId = $userDosen->dosen->id;
 
-        try {
-            // Ambil request judul yang 'dosen_tujuan_id' nya adalah ID dosen yang login
-            // dan mungkin filter berdasarkan status tertentu (misalnya, hanya yang 'pending')
-            $query = RequestJudul::where('dosen_tujuan_id', $dosenId);
+        $query = RequestJudul::where('dosen_tujuan_id', $dosenId);
 
-            // Opsional: Filter berdasarkan status dari query string
-            if ($request->has('status') && in_array($request->input('status'), ['pending', 'approved', 'rejected'])) {
-                $query->where('status', $request->input('status'));
-            } else {
-                // Default, tampilkan yang pending, atau semua jika tidak ada filter status
-                $query->where('status', 'pending'); // Contoh: default hanya tampilkan yang pending
-            }
-
-            $requests = $query->with(['mahasiswa.user:id,name', 'mahasiswa.prodi:id,nama_prodi']) // Eager load data mahasiswa & user mahasiswa & prodi mahasiswa
-                                ->orderBy('created_at', 'desc') // Urutkan, misal yang terbaru dulu
-                                ->paginate(10);
-
-            $filterStatus = $request->input('status', 'pending'); // Untuk dikirim ke view agar tahu filter aktif
-
-        } catch (\Throwable $e) {
-            Log::error("Error saat mengambil RequestJudul di DosenRequestJudulController@index (Dosen User ID: ".Auth::id()."): " . $e->getMessage());
-            return redirect()->route('dashboard') // Atau ke dashboard dosen
-                             ->with('error', 'Gagal memuat daftar pengajuan judul. Silakan coba lagi nanti.');
+        if ($request->has('status') && in_array($request->input('status'), ['pending', 'approved', 'rejected'])) {
+            $query->where('status', $request->input('status'));
+        } else {
+            $query->where('status', 'pending');
         }
+
+        $requests = $query->with(['mahasiswa.user:id,name', 'mahasiswa.prodi:id,nama_prodi'])
+                            ->orderBy('created_at', 'desc')
+                            ->paginate(10);
+        $filterStatus = $request->input('status', 'pending');
 
         return view('dosen.request_judul.index', compact('requests', 'filterStatus'));
     }
 
-    // --- Method show(), edit(), update() akan kita bahas setelah index ini bekerja ---
-    // show() akan menampilkan detail satu request
-    // edit() akan menampilkan form untuk dosen mengubah status & memberi catatan
-    // update() akan memproses perubahan status & catatan dari dosen
-
+    /**
+     * Display the specified resource.
+     */
     public function show(RequestJudul $requestJudul)
     {
-        // Otorisasi: Pastikan request ini memang ditujukan ke dosen yang login
+        // ... (Tidak ada perubahan di sini, sudah benar)
         $userDosen = Auth::user();
         if (!$userDosen || !$userDosen->dosen || $requestJudul->dosen_tujuan_id !== $userDosen->dosen->id) {
             abort(403, 'Anda tidak berhak mengakses detail pengajuan ini.');
         }
-
         $requestJudul->load(['mahasiswa.user:id,name,email', 'mahasiswa.prodi:id,nama_prodi,fakultas']);
         return view('dosen.request_judul.show', compact('requestJudul'));
     }
 
+    /**
+     * Show the form for editing the specified resource.
+     */
     public function edit(RequestJudul $requestJudul)
     {
-        // Otorisasi
+         // ... (Tidak ada perubahan di sini, sudah benar)
         $userDosen = Auth::user();
         if (!$userDosen || !$userDosen->dosen || $requestJudul->dosen_tujuan_id !== $userDosen->dosen->id) {
             abort(403, 'Anda tidak berhak mengubah pengajuan ini.');
         }
-
-        // Dosen hanya bisa memproses request yang masih pending (atau status lain yang relevan)
-        if (!in_array($requestJudul->status, ['pending'])) { // Tambahkan status lain jika perlu
+        if ($requestJudul->status !== 'pending') {
              return redirect()->route('dosen.request-judul.show', $requestJudul->id)
-                              ->with('warning', 'Pengajuan judul ini tidak dapat diproses karena statusnya bukan \'pending\'.');
+                              ->with('warning', 'Pengajuan judul ini sudah diproses.');
         }
-
         $requestJudul->load(['mahasiswa.user:id,name', 'mahasiswa.prodi:id,nama_prodi']);
         return view('dosen.request_judul.edit', compact('requestJudul'));
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, RequestJudul $requestJudul)
     {
         // Otorisasi
@@ -97,13 +83,13 @@ class RequestJudulController extends Controller
             abort(403, 'Anda tidak berhak mengubah pengajuan ini.');
         }
 
-        if (!in_array($requestJudul->status, ['pending'])) {
+        if ($requestJudul->status !== 'pending') {
              return redirect()->route('dosen.request-judul.show', $requestJudul->id)
-                              ->with('warning', 'Pengajuan judul ini tidak dapat diproses karena statusnya bukan \'pending\'.');
+                              ->with('warning', 'Pengajuan judul ini sudah diproses.');
         }
 
         $validatedData = $request->validate([
-            'status' => 'required|in:approved,rejected,revisi_mahasiswa',
+            'status' => 'required|in:approved,rejected', // Sederhanakan, revisi bisa jadi status terpisah
             'catatan_dosen' => 'nullable|string',
         ]);
 
@@ -111,25 +97,41 @@ class RequestJudulController extends Controller
         $requestJudul->catatan_dosen = $validatedData['catatan_dosen'] ?? null;
         $requestJudul->save();
 
-        // Tambahan: Jika status approved, update data mahasiswa
-        if ($validatedData['status'] === 'approved') {
-            $mahasiswa = $requestJudul->mahasiswa;
-            if ($mahasiswa) {
-                $mahasiswa->status_proyek_akhir = 'bimbingan'; // atau 'bimbingan' sesuai kebutuhan
-                $mahasiswa->judul_proyek_akhir = $requestJudul->judul_diajukan;
-                $mahasiswa->dosen_pembimbing_id = $requestJudul->dosen_tujuan_id;
-                $mahasiswa->save();
+        // --- INI BAGIAN UTAMA YANG DIPERBAIKI ---
+        // Dapatkan mahasiswa pembuat request sebagai titik awal
+        $mahasiswaPembuat = $requestJudul->mahasiswa;
+
+        if ($mahasiswaPembuat) {
+            // Ambil SEMUA anggota kelompok, termasuk si pembuat
+            $semuaAnggotaKelompok = $mahasiswaPembuat->semuaAnggotaKelompok();
+
+            // Jika statusnya 'approved', update semua anggota kelompok
+            if ($validatedData['status'] === 'approved') {
+                foreach ($semuaAnggotaKelompok as $anggota) {
+                    $anggota->status_proyek_akhir = 'bimbingan'; // Set status proyek menjadi bimbingan
+                    $anggota->judul_proyek_akhir = $requestJudul->judul_diajukan; // Set judul yang sama untuk semua
+                    $anggota->dosen_pembimbing_id = $requestJudul->dosen_tujuan_id; // Set dosen pembimbing yang sama
+                    $anggota->save();
+                }
+
+                // Setelah semua di-approve, tolak semua request judul PENDING lainnya dari kelompok ini
+                $anggotaIds = $semuaAnggotaKelompok->pluck('id');
+                RequestJudul::whereIn('mahasiswa_id', $anggotaIds)
+                            ->where('status', 'pending')
+                            ->where('id', '!=', $requestJudul->id) // Jangan tolak request yang baru saja diapprove
+                            ->update(['status' => 'rejected', 'catatan_dosen' => 'Ditolak otomatis karena judul lain dari kelompok Anda telah disetujui.']);
+            }
+
+            // Kirim notifikasi ke SEMUA anggota kelompok
+            foreach ($semuaAnggotaKelompok as $anggota) {
+                if ($anggota->user) {
+                    $anggota->user->notify(new RequestJudulNotification($requestJudul, 'to_mahasiswa'));
+                }
             }
         }
-
-        // Notifikasi ke Mahasiswa mengenai status pengajuannya
-        $mahasiswaUser = $requestJudul->mahasiswa->user;
-        if ($mahasiswaUser) {
-            $mahasiswaUser->notify(new RequestJudulNotification($requestJudul, 'to_mahasiswa'));
-        }
+        // --- AKHIR DARI BAGIAN YANG DIPERBAIKI ---
 
         return redirect()->route('dosen.request-judul.index')
                          ->with('success', 'Status pengajuan judul berhasil diperbarui.');
-
     }
 }

@@ -10,7 +10,6 @@ class Mahasiswa extends Model
     use HasFactory;
 
     protected $table = 'mahasiswa';
-
     protected $fillable = [
         'user_id',
         'nim',
@@ -21,74 +20,114 @@ class Mahasiswa extends Model
         'judul_proyek_akhir',
         'status_proyek_akhir',
     ];
-
     protected $casts = [
-        'angkatan' => 'integer', // Atau biarkan string jika 'year' MySQL
+        'angkatan' => 'integer',
     ];
 
-    // RELASI
-
-    /**
-     * Get the user that owns the mahasiswa.
-     */
+    // --- RELASI LAMA (TIDAK ADA PERUBAHAN) ---
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /**
-     * Get the prodi that owns the mahasiswa.
-     */
     public function prodi()
     {
         return $this->belongsTo(Prodi::class);
     }
 
-    /**
-     * Get the dosen pembimbing (user) for the mahasiswa.
-     */
     public function dosenPembimbing()
     {
         return $this->belongsTo(Dosen::class, 'dosen_pembimbing_id');
     }
 
-    /**
-     * Get the request judul for the mahasiswa.
-     */
     public function requestJudul()
     {
         return $this->hasMany(RequestJudul::class);
     }
 
-    /**
-     * Get the request bimbingan for the mahasiswa.
-     */
     public function requestBimbingan()
     {
         return $this->hasMany(RequestBimbingan::class);
     }
 
-    /**
-     * Get the history bimbingan for the mahasiswa.
-     */
     public function historyBimbingan()
     {
         return $this->hasMany(HistoryBimbingan::class);
     }
 
-    /**
-     * Get the dokumen proyek akhir for the mahasiswa.
-     */
     public function dokumenProyekAkhir()
     {
         return $this->hasMany(DokumenProyekAkhir::class);
     }
 
-     /**
-     * Get the log activities related to this mahasiswa.
-     */
     public function logActivities()
     {
         return $this->hasMany(LogActivity::class, 'mahasiswa_terkait_id');
+    }
+
+    // --- PERBAIKAN RELATIONSHIP TEMAN SEKELOMPOK ---
+
+    /**
+     * Mendapatkan semua mahasiswa yang berada dalam kelompok yang sama
+     * berdasarkan prodi, angkatan, dan nomor kelompok yang sama.
+     * EXCLUDE mahasiswa yang sedang login (berdasarkan id)
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function temanSeKelompok()
+    {
+        // PERBAIKAN 1: Menggunakan hasMany dengan scope yang benar
+        return $this->hasMany(Mahasiswa::class, 'nomor_kelompok', 'nomor_kelompok')
+            ->where('prodi_id', $this->prodi_id)
+            ->where('angkatan', $this->angkatan)
+            ->where('id', '!=', $this->id); // Exclude diri sendiri
+    }
+
+    /**
+     * Alternative method: Menggunakan scopeQuery untuk lebih fleksibel
+     * Gunakan ini jika method di atas masih bermasalah
+     */
+    public function temanSeKelompokAlt()
+    {
+        // Safety check
+        if (is_null($this->nomor_kelompok) || is_null($this->prodi_id) || is_null($this->angkatan)) {
+            // Return empty relationship
+            return $this->hasMany(Mahasiswa::class)->whereRaw('1 = 0');
+        }
+
+        return $this->hasMany(Mahasiswa::class, 'nomor_kelompok', 'nomor_kelompok')
+            ->where('prodi_id', $this->prodi_id)
+            ->where('angkatan', $this->angkatan)
+            ->where('id', '!=', $this->id);
+    }
+
+    /**
+     * Method untuk mendapatkan semua anggota kelompok (termasuk diri sendiri)
+     * Berguna untuk beberapa use case
+     */
+    public function semuaAnggotaKelompok()
+    {
+        // Safety check
+        if (is_null($this->nomor_kelompok) || is_null($this->prodi_id) || is_null($this->angkatan)) {
+            // Return collection berisi hanya diri sendiri
+            return collect([$this]);
+        }
+
+        return Mahasiswa::where('nomor_kelompok', $this->nomor_kelompok)
+            ->where('prodi_id', $this->prodi_id)
+            ->where('angkatan', $this->angkatan)
+            ->get();
+    }
+
+    /**
+     * Scope untuk mencari mahasiswa sekelompok
+     * Bisa digunakan sebagai alternative method
+     */
+    public function scopeSekelompokDengan($query, Mahasiswa $mahasiswa)
+    {
+        return $query->where('nomor_kelompok', $mahasiswa->nomor_kelompok)
+            ->where('prodi_id', $mahasiswa->prodi_id)
+            ->where('angkatan', $mahasiswa->angkatan)
+            ->where('id', '!=', $mahasiswa->id);
     }
 }

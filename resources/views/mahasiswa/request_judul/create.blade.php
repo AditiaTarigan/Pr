@@ -3,77 +3,63 @@
 @section('title', 'Ajukan Judul Proyek Akhir Baru')
 
 @section('content')
-{{-- Tambahkan margin-top di sini. Anda bisa menggunakan style inline atau kelas Bootstrap --}}
-{{-- Pilihan 1: Style inline (lebih presisi jika navbar punya tinggi spesifik) --}}
-{{-- <div class="card" style="margin-top: 80px;"> --}}
-
 <div class="container py-4 mt-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1>Formulir Pengajuan Judul Baru</h1>
+                <h1>Formulir Pengajuan Judul</h1>
                 <a href="{{ route('mahasiswa.request-judul.index') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-arrow-left me-1"></i> Kembali ke Daftar
+                    <i class="fas fa-arrow-left me-1"></i> Kembali
                 </a>
             </div>
 
-            @include('partials.alerts') {{-- Untuk menampilkan session error dari controller --}}
+            @include('partials.alerts')
 
             <div class="card shadow-sm">
                 <div class="card-body">
                     <form action="{{ route('mahasiswa.request-judul.store') }}" method="POST">
                         @csrf
+                        <div class="alert alert-info" role="alert">
+                            <h5 class="alert-heading fw-bold"><i class="fas fa-users me-2"></i>Pengajuan Kelompok</h5>
+                            <p>Judul yang Anda ajukan akan berlaku untuk seluruh anggota kelompok:</p>
+                            <hr>
+                            <ul class="list-unstyled mb-0">
+                                @forelse ($anggotaKelompok as $anggota)
+                                    <li><i class="fas fa-user-check me-2 text-success"></i><strong>{{ $anggota->user->name }}</strong> ({{ $anggota->nim }})</li>
+                                @empty
+                                    <li class="fst-italic"><i class="fas fa-info-circle me-2"></i>Pengajuan individu.</li>
+                                @endforelse
+                            </ul>
+                        </div>
 
                         <div class="mb-3">
                             <label for="judul_diajukan" class="form-label">Judul yang Diajukan <span class="text-danger">*</span></label>
                             <input type="text" class="form-control @error('judul_diajukan') is-invalid @enderror" id="judul_diajukan" name="judul_diajukan" value="{{ old('judul_diajukan') }}" required minlength="10" maxlength="255">
-                            @error('judul_diajukan')
-                                <div class="invalid-feedback">
-                                    {{ $message }}
-                                </div>
-                            @enderror
-                            <small class="form-text text-muted">Minimal 10 karakter, maksimal 255 karakter.</small>
+                            @error('judul_diajukan')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="mb-3">
-                            <label for="deskripsi" class="form-label">Latar Belakang & Tujuan Pemilihan Judul<span class="text-danger">*</span></label>
+                            <label for="deskripsi" class="form-label">Deskripsi Singkat / Latar Belakang<span class="text-danger">*</span></label>
                             <textarea class="form-control @error('deskripsi') is-invalid @enderror" id="deskripsi" name="deskripsi" rows="5" required minlength="20">{{ old('deskripsi') }}</textarea>
-                            @error('deskripsi')
-                                <div class="invalid-feedback">
-                                    {{ $message }}
-                                </div>
-                            @enderror
-                            <small class="form-text text-muted">Jelaskan secara singkat mengenai latar belakang dan tujuan dari judul yang Anda ajukan. Minimal 20 karakter.</small>
+                            @error('deskripsi')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <div class="mb-3">
-                            <label for="dosen_tujuan_id" class="form-label">Pilih Dosen Tujuan (Calon Pembimbing) <span class="text-danger">*</span></label>
+                            <label for="dosen_tujuan_id" class="form-label">Pilih Dosen Tujuan <span class="text-danger">*</span></label>
                             <select class="form-select @error('dosen_tujuan_id') is-invalid @enderror" id="dosen_tujuan_id" name="dosen_tujuan_id" required>
-                                <option value="" disabled {{ old('dosen_tujuan_id') ? '' : 'selected' }}>-- Pilih Dosen --</option>
-                                @if(isset($calonDosenPembimbing) && $calonDosenPembimbing->count() > 0)
-                                    @foreach ($calonDosenPembimbing as $dosen)
-                                        <option value="{{ $dosen->id }}" {{ old('dosen_tujuan_id') == $dosen->id ? 'selected' : '' }}>
-                                            {{ $dosen->user->name ?? 'Nama Dosen Tidak Tersedia' }} (NIDN: {{ $dosen->nidn }})
-                                        </option>
-                                    @endforeach
-                                @else
-                                    <option value="" disabled>Tidak ada dosen yang tersedia untuk program studi Anda saat ini.</option>
-                                @endif
+                                <option value="" disabled selected>-- Pilih Dosen dari Prodi Anda --</option>
+                                @foreach ($dosenList as $dosen)
+                                    <option value="{{ $dosen->id }}" {{ old('dosen_tujuan_id') == $dosen->id ? 'selected' : '' }}>
+                                        {{ $dosen->user->name }}
+                                    </option>
+                                @endforeach
                             </select>
-                            @error('dosen_tujuan_id')
-                                <div class="invalid-feedback">
-                                    {{ $message }}
-                                </div>
-                            @enderror
-                            <small class="form-text text-muted">Pilih salah satu dosen dari program studi Anda sebagai calon pembimbing.</small>
+                            @error('dosen_tujuan_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
 
                         <hr>
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{{ route('mahasiswa.request-judul.index') }}" class="btn btn-outline-secondary me-md-2">Batal</a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane me-1"></i> Kirim Pengajuan
-                            </button>
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-1"></i> Kirim Pengajuan</button>
                         </div>
                     </form>
                 </div>
@@ -81,32 +67,4 @@
         </div>
     </div>
 </div>
-</div> {{-- Ini adalah penutup dari <div class="card mt-5"> --}}
 @endsection
-
-@push('styles')
-{{-- Jika ada style khusus untuk halaman ini --}}
-<style>
-    .form-label {
-        font-weight: 500;
-    }
-    /* Anda juga bisa menambahkan style di sini jika tidak mau inline atau pakai kelas Bootstrap */
-    /*
-    .content-wrapper-for-fixed-navbar {
-        margin-top: 70px; /* Sesuaikan dengan tinggi navbar Anda */
-    }
-    */
-</style>
-@endpush
-
-@push('scripts')
-{{-- Jika ada script khusus untuk halaman ini, misalnya untuk editor WYSIWYG pada deskripsi --}}
-<script>
-    // Contoh: Inisialisasi editor jika ada
-    // ClassicEditor
-    //     .create( document.querySelector( '#deskripsi' ) )
-    //     .catch( error => {
-    //         console.error( error );
-    //     } );
-</script>
-@endpush
