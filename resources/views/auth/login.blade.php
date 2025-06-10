@@ -97,6 +97,10 @@
         <label for="remember">Ingat Saya</label>
     </div>
 
+    <div class="forgot-password">
+        <a href="{{ route('password.request') }}">Lupa Password?</a>
+    </div>
+
     <input type="submit" value="Login" id="login-btn">
 </form>
         </div>

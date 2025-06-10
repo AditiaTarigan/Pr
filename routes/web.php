@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 
 // --- Controller Autentikasi Kustom ---
 use App\Http\Controllers\Auth\CustomLoginController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 
 // --- Controller Aplikasi Lainnya ---
 use App\Http\Controllers\DashboardController;
@@ -41,6 +42,18 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [CustomLoginController::class, 'login']);
 });
 Route::post('logout', [CustomLoginController::class, 'logout'])->middleware('auth')->name('logout');
+
+// Rute untuk menampilkan form permintaan reset password
+Route::get('lupa-password', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
+
+// Rute untuk memproses pengiriman email reset password
+Route::post('lupa-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
+
+// Rute untuk menampilkan form reset password (yang ada tokennya)
+Route::get('reset-password/{token}', [ForgotPasswordController::class, 'showResetForm'])->name('password.reset');
+
+// Rute untuk memproses penyimpanan password baru
+Route::post('reset-password', [ForgotPasswordController::class, 'reset'])->name('password.update');
 
 // --- Halaman Awal ---
 Route::get('/', function () {
